@@ -760,6 +760,53 @@ body.light-theme .skeleton-card::after {
     }
 }
 
+/* Collapsible Card Body (Read More) */
+.note-card-body {
+    position: relative;
+    max-height: 1000px;
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.note-card-body.collapsed {
+    max-height: 120px;
+}
+
+.note-card-body.collapsed::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 48px;
+    background: linear-gradient(transparent, var(--bg-card));
+    pointer-events: none;
+    transition: opacity var(--transition-fast);
+}
+
+.read-more-btn {
+    background: transparent;
+    border: none;
+    color: var(--accent);
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 12px 0 0 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: color var(--transition-fast);
+}
+
+.read-more-btn:hover {
+    color: var(--text-primary);
+}
+
+.read-more-btn svg {
+    transition: transform var(--transition-normal);
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .app-header {

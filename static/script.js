@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let parsedUpdates = []; // Granular updates split from daily entries
     let activeFilter = 'all'; // Current active category filter
     let searchQuery = ''; // Current search query
+    let sortOrder = 'desc'; // Current sorting order ('desc' or 'asc')
 
     // DOM Elements
     const refreshBtn = document.getElementById('refreshBtn');
@@ -19,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const noResults = document.getElementById('noResults');
     const notesTimeline = document.getElementById('notesTimeline');
     const exportCsvBtn = document.getElementById('exportCsvBtn');
+    const sortOrderBtn = document.getElementById('sortOrderBtn');
     
     // Stats elements
     const statElements = {
@@ -45,6 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
     retryBtn.addEventListener('click', fetchReleaseNotes);
     themeCheckbox.addEventListener('change', toggleTheme);
     exportCsvBtn.addEventListener('click', exportToCSV);
+    sortOrderBtn.addEventListener('click', toggleSortOrder);
     
     // Search listener (with simple input monitoring)
     searchInput.addEventListener('input', (e) => {
@@ -115,8 +118,12 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Sort updates by date descending
-        parsedUpdates.sort((a, b) => b.rawDate - a.rawDate);
+        // Sort updates by date depending on sortOrder
+        if (sortOrder === 'desc') {
+            parsedUpdates.sort((a, b) => b.rawDate - a.rawDate);
+        } else {
+            parsedUpdates.sort((a, b) => a.rawDate - b.rawDate);
+        }
 
         // Update stats dashboard
         calculateStats();
@@ -281,6 +288,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const formattedType = item.type.charAt(0).toUpperCase() + item.type.slice(1);
             
+            // Check if HTML content is long to determine if it should be collapsible
+            const isLong = item.html.length > 380;
+            const bodyClass = isLong ? 'note-card-body collapsed' : 'note-card-body';
+            
             card.innerHTML = `
                 <div class="note-card">
                     <div class="note-card-header">
@@ -309,9 +320,17 @@ document.addEventListener('DOMContentLoaded', () => {
                             ` : ''}
                         </div>
                     </div>
-                    <div class="note-card-body">
+                    <div class="${bodyClass}">
                         ${item.html}
                     </div>
+                    ${isLong ? `
+                        <button class="read-more-btn" title="Toggle full text">
+                            <span>Read More</span>
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                    ` : ''}
                 </div>
             `;
 
@@ -345,6 +364,27 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.error('Could not copy text: ', err);
                 });
             });
+
+            // Attach expand/collapse toggles if content is long
+            if (isLong) {
+                const readMoreBtn = card.querySelector('.read-more-btn');
+                readMoreBtn.addEventListener('click', () => {
+                    const body = card.querySelector('.note-card-body');
+                    const isCollapsed = body.classList.toggle('collapsed');
+                    
+                    const btnText = readMoreBtn.querySelector('span');
+                    const btnSvg = readMoreBtn.querySelector('svg');
+                    
+                    if (isCollapsed) {
+                        btnText.textContent = 'Read More';
+                        btnSvg.style.transform = 'rotate(0deg)';
+                        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    } else {
+                        btnText.textContent = 'Show Less';
+                        btnSvg.style.transform = 'rotate(180deg)';
+                    }
+                });
+            }
 
             notesTimeline.appendChild(card);
         });
@@ -476,5 +516,31 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    }
+
+    // Toggle sorting chronological order (Newest vs Oldest first)
+    function toggleSortOrder() {
+        sortOrder = sortOrder === 'desc' ? 'asc' : 'desc';
+        
+        const btnText = sortOrderBtn.querySelector('.btn-text');
+        const btnIcon = sortOrderBtn.querySelector('.btn-icon svg');
+        
+        if (sortOrder === 'desc') {
+            btnText.textContent = 'Sort: Newest';
+            btnIcon.innerHTML = `
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <polyline points="19 12 12 19 5 12"></polyline>
+            `;
+            parsedUpdates.sort((a, b) => b.rawDate - a.rawDate);
+        } else {
+            btnText.textContent = 'Sort: Oldest';
+            btnIcon.innerHTML = `
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <polyline points="5 12 12 5 19 12"></polyline>
+            `;
+            parsedUpdates.sort((a, b) => a.rawDate - b.rawDate);
+        }
+        
+        applyFiltersAndSearch();
     }
 });
