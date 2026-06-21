@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const retryBtn = document.getElementById('retryBtn');
     const noResults = document.getElementById('noResults');
     const notesTimeline = document.getElementById('notesTimeline');
+    const exportCsvBtn = document.getElementById('exportCsvBtn');
     
     // Stats elements
     const statElements = {
@@ -45,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     refreshBtn.addEventListener('click', fetchReleaseNotes);
     retryBtn.addEventListener('click', fetchReleaseNotes);
     themeToggle.addEventListener('click', toggleTheme);
+    exportCsvBtn.addEventListener('click', exportToCSV);
     
     // Search listener (with simple input monitoring)
     searchInput.addEventListener('input', (e) => {
@@ -288,21 +290,64 @@ document.addEventListener('DOMContentLoaded', () => {
                             <span class="date-txt">${item.date}</span>
                             <span class="note-badge badge-${item.type}">${formattedType}</span>
                         </div>
-                        ${item.link ? `
-                            <a href="${item.link}" target="_blank" class="note-link-btn" title="View official release notes">
-                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                                    <polyline points="15 3 21 3 21 9"></polyline>
-                                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                        <div class="card-actions-group">
+                            <button class="note-copy-btn" title="Copy to Clipboard">
+                                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="copy-icon">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                                 </svg>
-                            </a>
-                        ` : ''}
+                                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="check-icon" style="display:none;">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </button>
+                            ${item.link ? `
+                                <a href="${item.link}" target="_blank" class="note-link-btn" title="View official release notes">
+                                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                        <polyline points="15 3 21 3 21 9"></polyline>
+                                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                                    </svg>
+                                </a>
+                            ` : ''}
+                        </div>
                     </div>
                     <div class="note-card-body">
                         ${item.html}
                     </div>
                 </div>
             `;
+
+            // Attach copy functionality to dynamic button
+            const copyBtn = card.querySelector('.note-copy-btn');
+            copyBtn.addEventListener('click', () => {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = item.html;
+                const textContent = tempDiv.innerText || tempDiv.textContent || '';
+                
+                const copyText = `Date: ${item.date}\nType: ${formattedType}\nLink: ${item.link || 'N/A'}\n\nContent:\n${textContent.trim()}`;
+                
+                navigator.clipboard.writeText(copyText).then(() => {
+                    copyBtn.classList.add('copied');
+                    const copySvg = copyBtn.querySelector('.copy-icon');
+                    const checkSvg = copyBtn.querySelector('.check-icon');
+                    
+                    if (copySvg && checkSvg) {
+                        copySvg.style.display = 'none';
+                        checkSvg.style.display = 'block';
+                    }
+                    
+                    setTimeout(() => {
+                        copyBtn.classList.remove('copied');
+                        if (copySvg && checkSvg) {
+                            copySvg.style.display = 'block';
+                            checkSvg.style.display = 'none';
+                        }
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Could not copy text: ', err);
+                });
+            });
+
             notesTimeline.appendChild(card);
         });
     }
@@ -370,5 +415,74 @@ document.addEventListener('DOMContentLoaded', () => {
             sunIcon.style.display = 'block';
             moonIcon.style.display = 'none';
         }
+    }
+
+    // Export current visible items to CSV file
+    function exportToCSV() {
+        if (!parsedUpdates || parsedUpdates.length === 0) {
+            alert("No release notes loaded to export.");
+            return;
+        }
+
+        // Get currently filtered list matching active filter and search query
+        let itemsToExport = parsedUpdates;
+        if (activeFilter !== 'all') {
+            itemsToExport = itemsToExport.filter(update => update.type === activeFilter);
+        }
+        if (searchQuery) {
+            itemsToExport = itemsToExport.filter(update => {
+                const dateMatch = update.date.toLowerCase().includes(searchQuery);
+                const contentMatch = update.html.toLowerCase().includes(searchQuery);
+                const typeMatch = update.type.toLowerCase().includes(searchQuery);
+                return dateMatch || contentMatch || typeMatch;
+            });
+        }
+
+        if (itemsToExport.length === 0) {
+            alert("No matching release notes found for the current filter/search to export.");
+            return;
+        }
+
+        // Helper to escape values for CSV CSV specifications
+        const escapeCSV = (val) => {
+            if (val === null || val === undefined) return '';
+            // Strip HTML tags for clean text in spreadsheet
+            const cleanVal = val.replace(/<[^>]*>/g, '').trim();
+            // Escape double quotes
+            const escaped = cleanVal.replace(/"/g, '""');
+            // Wrap in double quotes if special characters exist
+            if (escaped.includes(',') || escaped.includes('\n') || escaped.includes('\r') || escaped.includes('"')) {
+                return `"${escaped}"`;
+            }
+            return escaped;
+        };
+
+        // Build CSV Content
+        let csvContent = "Date,Category,Link,Content\n";
+        itemsToExport.forEach(item => {
+            const formattedType = item.type.charAt(0).toUpperCase() + item.type.slice(1);
+            const row = [
+                escapeCSV(item.date),
+                escapeCSV(formattedType),
+                escapeCSV(item.link),
+                escapeCSV(item.html)
+            ].join(',');
+            csvContent += row + "\n";
+        });
+
+        // Generate download action
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        
+        const filterSuffix = activeFilter === 'all' ? 'all' : activeFilter;
+        const searchSuffix = searchQuery ? `_search_${searchQuery.replace(/[^a-z0-9]/gi, '_')}` : '';
+        
+        link.setAttribute("href", url);
+        link.setAttribute("download", `bigquery_release_notes_${filterSuffix}${searchSuffix}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 });

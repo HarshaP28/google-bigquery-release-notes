@@ -580,6 +580,13 @@ body.light-theme .skeleton-card::after {
     color: var(--color-general);
 }
 
+.card-actions-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.note-copy-btn,
 .note-link-btn {
     color: var(--text-secondary);
     display: flex;
@@ -593,9 +600,16 @@ body.light-theme .skeleton-card::after {
     transition: all var(--transition-fast);
 }
 
+.note-copy-btn:hover,
 .note-link-btn:hover {
     color: var(--text-primary);
     background-color: var(--border-color);
+}
+
+.note-copy-btn.copied {
+    color: var(--color-feature) !important;
+    background-color: var(--color-feature-bg);
+    border-color: rgba(63, 185, 80, 0.2);
 }
 
 /* Card Content / Body styling */
