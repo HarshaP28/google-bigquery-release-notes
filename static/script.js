@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
     const refreshBtn = document.getElementById('refreshBtn');
     const refreshIcon = document.getElementById('refreshIcon');
-    const themeToggle = document.getElementById('themeToggle');
+    const themeCheckbox = document.getElementById('themeCheckbox');
     const searchInput = document.getElementById('searchInput');
     const clearSearch = document.getElementById('clearSearch');
     const statusMsg = document.getElementById('statusMsg');
@@ -33,9 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const filterChips = document.querySelectorAll('.filter-chip');
     const statCards = document.querySelectorAll('.stat-card');
 
-    // Theme Elements
-    const sunIcon = themeToggle.querySelector('.sun-icon');
-    const moonIcon = themeToggle.querySelector('.moon-icon');
+    // Theme Elements removed - handled via CSS and checkbox state
 
     // -------------------------------------------------------------
     // Initialization & Event Listeners
@@ -45,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     refreshBtn.addEventListener('click', fetchReleaseNotes);
     retryBtn.addEventListener('click', fetchReleaseNotes);
-    themeToggle.addEventListener('click', toggleTheme);
+    themeCheckbox.addEventListener('change', toggleTheme);
     exportCsvBtn.addEventListener('click', exportToCSV);
     
     // Search listener (with simple input monitoring)
@@ -391,29 +389,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (savedTheme === 'light') {
             document.body.classList.remove('dark-theme');
             document.body.classList.add('light-theme');
-            sunIcon.style.display = 'none';
-            moonIcon.style.display = 'block';
+            themeCheckbox.checked = true;
         } else {
             document.body.classList.remove('light-theme');
             document.body.classList.add('dark-theme');
-            sunIcon.style.display = 'block';
-            moonIcon.style.display = 'none';
+            themeCheckbox.checked = false;
         }
     }
 
     function toggleTheme() {
-        if (document.body.classList.contains('dark-theme')) {
+        if (themeCheckbox.checked) {
             document.body.classList.remove('dark-theme');
             document.body.classList.add('light-theme');
             localStorage.setItem('theme', 'light');
-            sunIcon.style.display = 'none';
-            moonIcon.style.display = 'block';
         } else {
             document.body.classList.remove('light-theme');
             document.body.classList.add('dark-theme');
             localStorage.setItem('theme', 'dark');
-            sunIcon.style.display = 'block';
-            moonIcon.style.display = 'none';
         }
     }
 
